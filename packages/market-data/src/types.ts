@@ -1,40 +1,117 @@
 import { z } from 'zod';
-import { PropertyType } from '@abare/core';
 
-// Treasury Rate Types
-export const TreasuryRateSchema = z.object({
+// Base types
+export interface BaseRate {
+  date: Date;
+  rate: number;
+}
+
+// Treasury Rate types
+export interface TreasuryRate extends BaseRate {
+  term: number; // years
+}
+
+export const treasuryRateSchema = z.object({
   date: z.date(),
   rate: z.number(),
-  term: z.number() // in years
+  term: z.number().int().positive()
 });
 
-export type TreasuryRate = z.infer<typeof TreasuryRateSchema>;
+export function isTreasuryRate(data: any): data is TreasuryRate {
+  return treasuryRateSchema.safeParse(data).success;
+}
 
-// SOFR Rate Types
-export const SofrRateSchema = z.object({
+// SOFR Rate types
+export interface SofrRate extends BaseRate {
+  term: string; // e.g., '30D', '90D', '180D'
+}
+
+export const sofrRateSchema = z.object({
   date: z.date(),
   rate: z.number(),
-  term: z.enum(['overnight', '30day', '90day', '180day'])
+  term: z.string()
 });
 
-export type SofrRate = z.infer<typeof SofrRateSchema>;
+export function isSofrRate(data: any): data is SofrRate {
+  return sofrRateSchema.safeParse(data).success;
+}
 
-// Market Spread Types
-export const MarketSpreadSchema = z.object({
-  propertyType: z.nativeEnum(PropertyType),
+// Market Spread types
+export interface MarketSpread {
+  date: Date;
+  propertyType: string;
+  loanType: string;
+  spread: number; // basis points
+  baseRate: string; // 'SOFR' or 'Treasury'
+  term: string;
+}
+
+export const marketSpreadSchema = z.object({
   date: z.date(),
+  propertyType: z.string(),
+  loanType: z.string(),
   spread: z.number(),
-  loanType: z.enum(['fixed', 'floating'])
+  baseRate: z.enum(['SOFR', 'Treasury']),
+  term: z.string()
 });
 
-export type MarketSpread = z.infer<typeof MarketSpreadSchema>;
+export function isMarketSpread(data: any): data is MarketSpread {
+  return marketSpreadSchema.safeParse(data).success;
+}
 
-// Cap Rate Types
-export const CapRateSchema = z.object({
-  propertyType: z.nativeEnum(PropertyType),
+// Cap Rate types
+export interface CapRate {
+  date: Date;
+  propertyType: string;
+  market: string;
+  rate: number;
+}
+
+export const capRateSchema = z.object({
   date: z.date(),
-  rate: z.number(),
-  market: z.string()
+  propertyType: z.string(),
+  market: z.string(),
+  rate: z.number()
 });
 
-export type CapRate = z.infer<typeof CapRateSchema>;
+export function isCapRate(data: any): data is CapRate {
+  return capRateSchema.safeParse(data).success;
+}
+
+// Historical Data types
+export interface HistoricalData<T> {
+  data: T[];
+  startDate: Date;
+  endDate: Date;
+  frequency: 'daily' | 'weekly' | 'monthly';
+}
+
+// Market Analysis types
+export interface MarketTrend {
+  trend: 'increasing' | 'decreasing' | 'stable';
+  volatility: number;
+  confidence: number;
+  timeframe: string;
+}
+
+export interface SpreadAnalysis {
+  currentSpread: MarketSpread;
+  historicalAverage: number;
+  trend: MarketTrend;
+  comparables: MarketSpread[];
+}
+
+// Risk Assessment types
+export interface MarketRisk {
+  riskLevel: 'low' | 'medium' | 'high';
+  factors: string[];
+  score: number;
+  confidence: number;
+}
+
+export interface RateEnvironment {
+  sofrRates: SofrRate[];
+  treasuryRates: TreasuryRate[];
+  marketSpreads: MarketSpread[];
+  riskAssessment: MarketRisk;
+}
